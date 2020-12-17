@@ -16,11 +16,12 @@ import           Network.HTTP.Client (defaultManagerSettings, newManager)
 import           Servant.API
 import           Servant.Client
 
-type Username = Text
+type Username  = Text
 type UserAgent = Text
+type Reponame  = Text
 
 data GitHubUser =
-  GitHubUser { login :: Text
+ GitHubUser { login :: Text
              , name  :: Text
              , email :: Maybe Text
              , location :: Text
@@ -37,15 +38,29 @@ data GitHubRepo =
              , language :: Maybe Text
              } deriving (Generic, FromJSON, Show)
 
-type GitHubAPI = "users" :> Header "user-agent" UserAgent 
+data RepoContributor =
+  RepoContributor { login :: Text
+                  , contributions :: Integer
+                  } deriving (Generic, FromJSON, Show)
+
+type GitHubAPI = "users" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int 
                          :> Capture "username" Username  :> Get '[JSON] GitHubUser
-            :<|> "users" :> Header "user-agent" UserAgent 
+                         
+            :<|> "users" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int 
                          :> Capture "username" Username  :> "repos" :>  Get '[JSON] [GitHubRepo]
+                         
+            :<|> "repos" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int 
+                         :> Capture "username" Username  
+                         :> Capture "repo"     Reponame  :> "contributors" :>  Get '[JSON] [RepoContributor]
 
 gitHubAPI :: Proxy GitHubAPI
 gitHubAPI = Proxy
 
-getUser :: Maybe UserAgent -> Username -> ClientM GitHubUser
-getUserRepos :: Maybe UserAgent -> Username -> ClientM [GitHubRepo]
-
-getUser :<|> getUserRepos = client gitHubAPI
+getUser ::          Maybe UserAgent -> BasicAuthData -> Username            -> ClientM GitHubUser
+getUserRepos ::     Maybe UserAgent -> BasicAuthData -> Username            -> ClientM [GitHubRepo]
+getRepoContribs ::  Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM [RepoContributor]
+  
+getUser :<|> getUserRepos :<|> getRepoContribs = client gitHubAPI

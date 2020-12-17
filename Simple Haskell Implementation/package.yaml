@@ -27,7 +27,10 @@ dependencies:
   - servant-client
   - http-client
   - http-client-tls
-
+  - utf8-string
+  - hashmap
+  - split
+  
 library:
   source-dirs: src
 
